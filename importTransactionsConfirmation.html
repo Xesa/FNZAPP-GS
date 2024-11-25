@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <base target="_top">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap" rel="stylesheet"> <!-- Cargar fuente Nunito -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet"> <!-- Cargar fuente Roboto -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet"> <!-- Cargar Font Awesome -->
+
+  <style>
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0px;
+      background-color: #ffffff;
+      color: #333;
+    }
+
+    h2 {
+      text-align: center;
+      font-size: 24px;
+      color: #444;
+      margin-bottom: 20px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 12px;
+    }
+
+    th, td {
+      padding: 12px 18px;
+      text-align: center;
+      border-bottom: 2px solid #eee;
+      max-width: 100px;
+    }
+
+    th {
+      background-color: #8c80b3;
+      color: white;
+      font-weight: bold;
+      font-family: 'Nunito', sans-serif;
+    }
+
+    td {
+      background-color: #fff;
+      color: #555;
+    }
+
+    td.editable:hover {
+      background-color: #f0f0f0;
+      cursor: pointer;
+    }
+
+    td.big {
+      max-width: 300px;
+    }
+
+    td.delete-column {
+      padding: 12px 12px;
+      max-width: 20px;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 15px;
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+    }
+
+    button {
+      padding: 14px 22px;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      min-width: 120px;
+    }
+
+    #cancel {
+      background-color: white;
+      color: #8c80b3;
+      border: 2px solid #8c80b3;
+      font-weight: bold;
+    }
+
+    #accept {
+      background-color: #8c80b3;
+      color: white;
+      font-weight: bold;
+    }
+
+    #accept:hover, #cancel:hover {
+      box-shadow: 0 0 15px rgba(140, 128, 179, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .checkbox {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+    }
+
+    /* Estilo del botón de eliminar */
+    .delete-btn {
+      cursor: pointer;
+      color: gray;
+      border: none;
+      background: none;
+      font-size: 20px;
+      padding: 0;
+      margin: 0;
+      width: 20px;
+      min-width: 0px;
+    }
+
+    .delete-btn:hover {
+      color: red;
+      background: none;
+    }
+
+    .undo-popup {
+      position: absolute;
+      left: 50%;
+      bottom: 20px;
+      transform: translateX(-50%);
+      background-color: rgba(30, 30, 30, 0.66);
+      color: white;
+      font-size: 14px;
+      padding: 15px 20px;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 225px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+    }
+
+    /* Animación inicial desde abajo */
+    .undo-popup.show {
+      animation: slideUp 0.5s ease-out forwards;
+    }
+
+    .undo-popup .undo-action {
+      font-weight: bold;
+    }
+
+    .undo-popup .undo-action:hover {
+      cursor: pointer;
+    }
+
+    .undo-popup .circle {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      position: relative;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      -webkit-mask-image: radial-gradient(circle, transparent 45%, black 46%);
+       mask-image: radial-gradient(circle, transparent 45%, black 46%);
+    }
+
+    .undo-popup .close-btn {
+      width: 20px;
+      height: 20px;
+      background-color: transparent;
+      border-radius: 50%;
+      font-size: 14px;
+      color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Hover para mostrar la X */
+
+    .undo-popup:hover .circle {
+      transition: all 75ms ease-in;
+      -webkit-mask-image: radial-gradient(circle, transparent 0%, black 0%);
+      mask-image: radial-gradient(circle, transparent 0%, black 0%);
+    }
+    .undo-popup:hover .close-btn {
+      transition: all 150ms ease-in;
+      opacity: 1;
+      background-color: white;
+      color: #8c80b3;
+      cursor: pointer;
+    }
+
+    .undo-popup .fa-solid.fa-check {
+      display: flex;
+      line-height: 0;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div id="dataTable"></div>
+
+  <div class="button-container">
+    <button id="cancel" onclick="cancel()">Cancelar</button>
+    <button id="accept" onclick="accept()">Aceptar</button>
+  </div>
+
+  <div id="undoPopupContainer"></div>
+
+  <script>
+
+    let popupCount = 0; // Para contar los pop-ups y posicionarlos arriba
+
+    function generateTable() {
+
+      console.group("FNZAPP - Generating table:");
+
+
+      let table = "<table>";
+      table += "<tr><th></th><th>MES</th><th>FECHA</th><th>SEMANA</th><th>BANCO</th><th>CATEGORÍA</th><th>BENEFICIARIO</th><th>GRUPO</th><th>CONCEPTO</th><th>IMPORTE</th><th>COMPARTIDO</th><th>PREVISIÓN</th></tr>";
+
+      data.forEach(function(row, index) {
+
+        console.log(`Table row #${index+1}: ${row}`);
+
+        const month = new Date(row[1]).toLocaleString('es-ES', { month: 'long' }).toUpperCase();
+        const date = new Date(row[1]).toLocaleDateString('es-ES');
+        const amount = row[8];
+        const amountColor = amount < 0 ? 'red' : 'green';
+        const shared = row[9] === true ? '<input type="checkbox" checked class="checkbox">' : '<input type="checkbox" class="checkbox">';
+        const forecast = row[10] === true ? '<input type="checkbox" checked class="checkbox">' : '<input type="checkbox" class="checkbox">';
+
+        table += `<tr>
+                    <td class="delete-column"><button class="delete-btn" onclick="deleteRow(${index})"><i class="fas fa-trash-alt"></i></button></td>
+                    <td>${month}</td>
+                    <td>${date}</td>
+                    <td>${row[2]}</td>
+                    <td>${row[3]}</td>
+                    <td class="editable" contenteditable="true" onblur="saveChanges(${index}, 4, this.innerText)">${row[4]}</td>
+                    <td class="editable" contenteditable="true" onblur="saveChanges(${index}, 5, this.innerText)">${row[5]}</td>
+                    <td class="editable" contenteditable="true" onblur="saveChanges(${index}, 6, this.innerText)">${row[6]}</td>
+                    <td class="editable big" contenteditable="true" onblur="saveChanges(${index}, 7, this.innerText)">${row[7]}</td>
+                    <td style="color: ${amountColor}">${amount.toFixed(2)} €</td>
+                    <td>${shared}</td>
+                    <td>${forecast}</td>
+                  </tr>`;
+      });
+
+      table += "</table>";
+
+      console.log('Table elements ready.');
+
+      document.getElementById('dataTable').innerHTML = table;
+
+      console.endGroup('Table appended to HTML body.');
+    }
+
+    function saveChanges(row, column, newValue) {
+      data[row][column] = newValue;
+    }
+
+    function deleteRow(index) {
+      let deletedRow = data[index];
+      data.splice(index, 1);
+      generateTable();
+      showPopup(deletedRow);
+    }
+    
+
+    function showPopup(deletedRow) {
+
+      // Añadimos los elementos del popup
+
+      const popupContainer = document.getElementById('undoPopupContainer');
+
+      const popup = document.createElement('div');
+      popup.classList.add('undo-popup', 'show');
+
+      const circle = document.createElement('div');
+      circle.classList.add('circle');
+      circle.innerHTML = '<span class="close-btn"><i class="fa-solid fa-check"></i></span>';
+
+      const text = document.createElement('span');
+      text.innerHTML = 'Datos eliminados. <span class="undo-action">Deshacer</span>';
+
+      popup.appendChild(text);
+      popup.appendChild(circle);
+      popupContainer.appendChild(popup);
+
+      // Calculamos la posición vertical del pop-up para que cada uno aparezca más arriba
+      const offsetY = popupCount * 60;
+      popup.style.bottom = `${20 + offsetY}px`;
+      popupCount++;
+
+      // Aplicamos los estilos iniciales para la animación desde JavaScript
+      popup.style.opacity = '0';
+      popup.style.transform = 'translateY(0) translateX(0)';
+
+      // Añadimos un pequeño retraso para permitir que el DOM se actualice antes de aplicar la animación
+      setTimeout(function(){
+        popup.style.transition = 'opacity 500ms ease-in 75ms, transform 200ms ease-in-out 50ms';
+        popup.style.opacity = '1';
+        popup.style.transform = 'translateY(0) translateX(-50%)'; // Mueve el pop-up a su posición final
+      }, 10);
+
+      // Establecemos la duración del popup
+      const removePopupAction = () => removePopup(popup);
+      const popupTimer = new TimeoutTimer(removePopupAction, 5000);
+
+      // Iniciamos la animación del círculo
+      const animateCircleAction = animateCircle;
+      const circleTimer = new IntervalTimer(animateCircleAction, circle, 5000, 10);
+
+      // Acción de deshacer
+      popup.querySelector('.undo-action').onclick = function () {
+        data.push(deletedRow);
+        generateTable();
+        popupTimer.stopTimer();
+      };
+
+      // Acciones de hover
+      popup.addEventListener('mouseenter', function () {
+        popupTimer.pauseTimer();
+        circleTimer.pauseTimer();
+      });
+      popup.addEventListener('mouseleave', function () {
+        popupTimer.resumeTimer();
+        circleTimer.resumeTimer();
+      });
+
+    }
+
+    function animateCirclee(circle, timeLeft) {
+      let iteration = 0;  // Contador para el número de repeticiones
+      const intervalTime = 10;
+      const totalIterations = timeLeft/intervalTime;
+      const iterationValue = 100 / totalIterations;
+
+      circle.style.transition = `all ${intervalTime}ms linear`;
+
+      const interval = setInterval(function() {
+        const gradientValue = `conic-gradient(transparent 0% ${iteration*iterationValue}%, white ${(iteration*iterationValue)+10}% 100%)`
+        circle.style.backgroundImage = gradientValue;
+        iteration++;
+
+        if (iteration >= totalIterations) {
+          clearInterval(interval);
+        }
+      }, intervalTime);
+
+    }
+
+    function animateCircle(circle, intervalTime, iteration, iterationValue) {
+      const whiteValue = iteration * iterationValue;
+      const transparentValue = (iteration*iterationValue) + 10;
+      circle.style.transition = `all ${intervalTime}ms linear`;
+      circle.style.backgroundImage = `conic-gradient(transparent 0% ${whiteValue}%, white ${transparentValue}% 100%)`;
+    }
+
+    function removePopup(popup) {
+      popup.style.transition = "opacity 100ms ease-out";
+      popup.style.opacity = 0;
+      setTimeout(function(){
+            popup.remove()
+            popupCount--;
+            repositionPopups();
+      }, 150);
+    }
+
+    function repositionPopups() {
+      const popups = document.querySelectorAll('.undo-popup.show');
+      popups.forEach((popup, index) => {
+        popup.style.transition = `opacity 100ms ease-out, bottom 150ms ease-out ${index * 15}ms`;
+        popup.style.bottom = `${20 + index * 60}px`; // Mueve el pop-up a su posición final
+      });
+    }
+
+    class TimeoutTimer {
+
+      constructor(action, duration) {
+        this.duration = duration;
+        this.startTime = Date.now();
+        this.remainingTime = duration;
+        this.timeoutId = null;
+        this.isPaused = false;
+        this.action = action;
+
+        this.startTimer();
+      }
+
+      startTimer() {
+        this.timeoutId = setTimeout(() => {
+          this.action();
+        }, this.remainingTime);
+      }
+
+      pauseTimer() {
+        if (!this.isPaused) {
+          clearTimeout(this.timeoutId);
+          this.remainingTime -= Date.now() - this.startTime;
+          this.isPaused = true;
+        }
+      }
+
+      resumeTimer() {
+        if (this.isPaused) {
+          this.startTime = Date.now();
+          this.startTimer();
+          this.isPaused = false;
+        }
+      }
+
+      stopTimer() {
+        clearTimeout(this.timeoutId);
+        this.action();
+      }
+    }
+
+    class IntervalTimer {
+
+      constructor(action, object, duration, intervalTime) {
+        this.action = action;
+        this.object = object;
+        this.duration = duration;
+        this.intervalTime = intervalTime;
+
+        this.iteration = 0;
+        this.totalIterations = duration / intervalTime;
+        this.iterationValue = 100 / this.totalIterations;
+
+        this.startTime = Date.now();
+        this.remainingTime = duration;
+        this.lastIntervalStartTime = Date.now();
+        this.lastIntervalRemainingTime = intervalTime;
+
+        this.intervalId = null;
+        this.temporalTimeoutId = null;
+        this.isPaused = false;
+
+        this.startTimer();
+      }
+
+      startTimer() {
+
+        this.intervalId = setInterval(() => {
+
+          this.lastIntervalStartTime = Date.now();
+
+          this.action(this.object, this.intervalTime, this.iteration, this.iterationValue);
+
+          this.iteration++;
+
+          if (this.iteration >= this.totalIterations) {
+            clearInterval(this.intervalId);
+          }
+
+        }, this.intervalTime);
+      }
+
+      pauseTimer() {
+        if (!this.isPaused) {
+          clearInterval(this.intervalId);
+          this.lastIntervalRemainingTime -= Date.now() - this.lastIntervalStartTime;
+          this.remainingTime -= Date.now() - this.startTime;
+          this.isPaused = true;
+        }
+      }
+
+      resumeTimer() {
+        if (this.isPaused) {
+
+          this.lastIntervalStartTime = Date.now();
+
+          this.temporalTimeoutId = setTimeout(() => {
+            this.action(this.object, this.intervalTime, this.iteration, this.iterationValue);
+            this.startTime = Date.now();
+            this.startTimer();
+            this.isPaused = false;
+          }, this.lastIntervalRemainingTime);
+
+        }
+      }
+
+      stopTimer() {
+        clearInterval(this.intervalId);
+        clearTimeout(this.temporalTimeoutId);
+      }
+    }
+
+    function accept() {
+      google.script.run.addBankData(data);
+      google.script.host.close();
+    }
+
+    function cancel() {
+      google.script.host.close();
+    }
+
+    window.onload = generateTable;
+  </script>
+
+</body>
+</html>
