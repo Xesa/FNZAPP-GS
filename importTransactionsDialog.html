@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base target="_top">
+
+    <style>
+
+      .dialog-content {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        width: 100%;
+        font-family: 'Roboto', sans-serif;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+
+      textarea {
+        width: 100%;
+        font-size: 16px;
+        padding: 12px;
+        border: 3px solid #ccc;
+        background-color: #fafafa;
+        color: #333;
+        border-radius: 8px;
+        outline: none;
+        box-sizing: border-box;
+        resize: vertical;
+        transition: border-color 0.3s, box-shadow 0.3s;
+      }
+
+      textarea:focus {
+        border-color: #8c80b3;
+        box-shadow: 0 0 6px 1px rgba(140, 128, 179, 0.4);
+      }
+
+      .action-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 15px;
+      }
+
+      select {
+        padding: 12px 15px;
+        font-size: 18px;
+        background-color: #f7f7f7;
+        color: #333;
+        border: 2px solid #ccc;
+        border-radius: 8px;
+        cursor: pointer;
+        width: 200px;
+        transition: border-color 0.3s, box-shadow 0.3s;
+      }
+
+      select:focus {
+        border-color: #8c80b3;
+        box-shadow: 0 0 6px 1px rgba(140, 128, 179, 0.4);
+      }
+
+      .button-container {
+        display: flex;
+        gap: 15px;
+      }
+
+      button {
+        padding: 14px 22px;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        min-width: 120px;
+      }
+
+      #cancel {
+        background-color: white;
+        color: #8c80b3;
+        border: 2px solid #8c80b3;
+        font-weight: bold;
+      }
+
+      #accept {
+        background-color: #8c80b3;
+        color: white;
+        font-weight: bold;
+    }
+
+    #accept:hover, #cancel:hover {
+      box-shadow: 0 0 15px rgba(140, 128, 179, 0.4);
+      transform: translateY(-1px);
+    }
+  
+  </style>
+</head>
+
+<body>
+
+    <div class="dialog-content">
+
+      <!-- Caja de Texto -->
+      <textarea id="text-box" placeholder="Introduce las transacciones..." rows="24"></textarea>
+
+      <!-- Contenedor con Selector y Botones -->
+      <div class="action-container">
+
+        <!-- Selector de Banco -->
+        <select id="bank-selector">
+          <option value="Sabadell">Sabadell</option>
+          <option value="Abanca">Abanca</option>
+          <option value="La Caixa">La Caixa</option>
+          <option value="Cobee">Cobee</option>
+        </select>
+
+        <!-- Contenedor de Botones -->
+        <div class="button-container">
+          <button id="cancel" onclick="google.script.host.close()">Cancelar</button>
+          <button id="accept" onclick="sendData()">Aceptar</button>
+        </div>
+
+      </div>
+    </div>
+
+
+    <script>
+        function sendData() {
+            const data = document.getElementById("text-box").value;
+            const bank = document.getElementById("bank-selector").value;
+            google.script.run.importTransactions(data, bank);
+            google.script.host.close();
+        }
+    </script>
+
+</body>
+</html>
