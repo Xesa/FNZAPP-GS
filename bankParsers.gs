@@ -3,7 +3,7 @@ function parseBankData(data, bank) {
   var parsedData;
 
   switch(bank) {
-    case "Sabadell": parsedData = newSabadellParser(); break;
+    case "Sabadell": parsedData = parseSabadellData(); break;
     default: parsedData = ""; break;
   }
   
